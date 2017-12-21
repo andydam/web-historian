@@ -11,6 +11,7 @@ exports.headers = {
 };
 
 sendResponse = (res, code, data, headers = exports.headers) => {
+  //sends response back
   res.writeHead(code, headers);
   res.end(data);
 };
@@ -63,12 +64,9 @@ exports.checkAssets = function(request, response) {
           exports.serveAssets(response, '/loading.html');
         } else if (inList && archived) {
           //url is in sites.txt and archived
-          sendResponse(response, 201, JSON.stringify({'archived': true}));
+          exports.serveAssets(response, '/archives/sites/' + requestUrl + '/');
         }
       });
     });
   }
 };
-
-
-// As you progress, keep thinking about what helper functions you can put here!
