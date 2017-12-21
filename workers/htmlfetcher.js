@@ -1,8 +1,10 @@
 // Use the code in `archive-helpers.js` to actually download the urls
 // that are waiting.
 
+var fs = require('fs');
 //require archive-helpers module
 var archive = require('../helpers/archive-helpers');
+
 //run readListOfUrls to get list of urls
 archive.readListOfUrls(listOfUrls => {
   let downloadList = [];
@@ -21,5 +23,6 @@ archive.readListOfUrls(listOfUrls => {
     listOfUrls[downloadList[i]] = true;
   }
 
+  //update sites.txt
   fs.writeFileSync(archive.paths.list, JSON.stringify(listOfUrls));
 });
