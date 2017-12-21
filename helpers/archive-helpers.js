@@ -28,9 +28,9 @@ exports.initialize = function(pathsObj) {
 exports.readListOfUrls = function(callback) {
   //read sites.txt
   fs.readFile(exports.paths.list, (err, data) => {
-    //parse json stringified data in text
+    //check if data is json, if json parse data, if not json, return empty object as data
     //return data to callback
-    callback(JSON.parse(data));
+    data.toString().startsWith('{') && data.toString().endsWith('}') ? callback(JSON.parse(data)) : callback({});
   });
 };
 
