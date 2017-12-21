@@ -41,7 +41,7 @@ exports.serveAssets = function(res, asset, callback) {
 
 exports.checkAssets = function(request, response) {
   //check if proper POST request
-  if (request.url === '/request') {
+  if (request.url === '/') {
     //declare variable to store data
     let requestData = '';
     request.on('data', data => {
@@ -50,19 +50,17 @@ exports.checkAssets = function(request, response) {
     });
     request.on('end', ()=> {
       //once data is all received, parse data
-      requestData = JSON.parse(requestData);
-      //pull requested url from request data
-      let requestUrl = requestData.url;
+      let requestUrl = requestData.split('=')[1];
       //check if url is already in sites.txt
       archive.isUrlInList(requestUrl, (inList, archived) => {
         if (!inList && !archived) {
           //url is not in sites.txt, add to list
           archive.addUrlToList(requestUrl, err => {
-            sendResponse(response, 202, JSON.stringify({'archived': false}));
+            exports.serveAssets(response, '/loading.html');
           });
         } else if (inList && !archived) {
           //url is in sites.txt but not yet archived
-          sendResponse(response, 202, JSON.stringify({'archived': false}));
+          exports.serveAssets(response, '/loading.html');
         } else if (inList && archived) {
           //url is in sites.txt and archived
           sendResponse(response, 201, JSON.stringify({'archived': true}));
