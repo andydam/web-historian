@@ -35,6 +35,41 @@ exports.serveAssets = function(res, asset, callback) {
   });
 };
 
+exports.checkAssets = function(request, response) {
+  //check if proper POST request
+  if (request.url === '/request') {
+    //declare variable to store data
+    let requestData = '';
+    request.on('data', data => {
+      //add data to requestData as received
+      requestData += data;
+    });
+    request.on('end', ()=> {
+      //once data is all received, parse data
+      requestData = JSON.parse(requestData);
+      //pull requested url from request data
+      let requestUrl = requestData.url;
+      //check if url is already in sites.txt
+      archive.isUrlInList(requestUrl, (inList, archived) => {
+        if (!inList && !archived) {
+          //url is not in sites.txt, add to list
+          archive.addUrlToList(requestUrl, err => {
+            response.writeHead(202, exports.headers);
+            response.end('url was accepted and waiting to be archived');
+          });
+        } else if (inList && !archived) {
+          //url is in sites.txt but not yet archived
+          response.writeHead(202, exports.headers);
+          response.end('url was already accepted and waiting to be archived');
+        } else if (inList && archived) {
+          //url is in sites.txt and archived
+          response.writeHead(201, exports.headers);
+          response.end('url is archived');
+        }
+      });
+    });
+  }
+};
 
 
 // As you progress, keep thinking about what helper functions you can put here!

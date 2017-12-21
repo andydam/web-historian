@@ -9,7 +9,7 @@ exports.handleRequest = function (req, res) {
     //GET was requested, call httpHelpers to serve asset
     httpHelpers.serveAssets(res, req.url);
   } else if (req.method === 'POST') {
-    //POST was requested
-    
+    //POST was requested, call httpHelpers to handle POST
+    httpHelpers.checkAssets(req, res);
   }
 };
