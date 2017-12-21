@@ -3,6 +3,7 @@ var path = require('path');
 var _ = require('underscore');
 var request = require('request');
 var cheerio = require('cheerio');
+var url = require('url');
 
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
@@ -84,7 +85,7 @@ fs.mkdirParent = function(dirPath, mode, callback) {
   });
 };
 
-var mkdir = (path) => {
+var mkdir = path => {
   //check if path exists
   if (!fs.existsSync(path)) {
     //path does not exist
@@ -102,35 +103,63 @@ var mkdir = (path) => {
   }
 };
 
+var getUrl = (urlString, hostName) => {
+  //turns url string into good url object
+  if (urlString.startsWith('//')) {
+    // //example.com/path/to/img.png
+    urlString = urlString.slice(2);
+  }
+  if (!urlString.startsWith('http')) {
+    if (!urlString.includes(hostName)) {
+      if (urlString.startsWith('/')) {
+        // /path/to/img.png
+        urlString = 'http://' + hostName + urlString;
+      } else {
+        // img.png
+        urlString = 'http://' + hostName + '/' + urlString;
+      }
+    } else {
+      // example.com/path/to/img.png
+      urlString = 'http://' + urlString;
+    }
+  } else {
+    // http://example.com/path/to/img.png
+    //do nothing good url
+  }
+  return url.parse(urlString);
+};
+
 exports.downloadUrls = function(urls) {
   //for loop to iterate through array of urls
   for (let i = 0; i < urls.length; i++) {
     //make directory for url
     mkdir(exports.paths.archivedSites + '/' + urls[i]);
     //download page at url
-    request('http://'+ urls[i], (error, response, body) => {
+    request('http://' + urls[i], (error, response, body) => {
+      console.log('\n crawling http://' + urls[i]);
       //load downloaded page in cheerio
       $ = cheerio.load(body);
       //iterate through page and find img tags
       $('img').each((index, element) => {
         //pull the src path of each img tag using .attr()
         let imgSrc = $(element).attr('src');
-        //get a directory path to store image at
-        //slice off index 0 of split src, index 0 may be a empty string or domain name
-        let directory = imgSrc.split('/').slice(1, -1).join('/');
-        //make directory for image
-        mkdir(exports.paths.archivedSites + '/' + urls[i] + directory);
-        console.log('http://'+ urls[i] + imgSrc);
-        console.log(exports.paths.archivedSites + '/' + urls[i] + imgSrc);
-        //download image to directory
-        request('http://'+ urls[i] + imgSrc).pipe(fs.createWriteStream(exports.paths.archivedSites + '/' + urls[i] + imgSrc));
-        //create a new src path that points to our downloaded image
-        let newImgSrc = imgSrc.split('/');
-        newImgSrc[0] = 'http://127.0.0.1:8080/archives/sites/' + urls[i];
-        newImgSrc = newImgSrc.join('/');
-        //change src path of img tag to point to our server
-        console.log(newImgSrc);
-        $(element).attr('src', newImgSrc);
+        if (imgSrc) {
+          //turn src into url object
+          let imgSrcUrl = getUrl(imgSrc, urls[i]);
+          //get a directory path to store image at, slices file off
+          let directory = imgSrcUrl.pathname.split('/').slice(0, -1).join('/');
+          //make directory for image
+          mkdir(exports.paths.archivedSites + '/' + urls[i] + directory);
+          console.log('found img at ' + imgSrcUrl.href);
+          console.log('will store img at ' + exports.paths.archivedSites + '/' + urls[i] + imgSrcUrl.pathname);
+          //download image to directory
+          request(imgSrcUrl.href).pipe(fs.createWriteStream(exports.paths.archivedSites + '/' + urls[i] + imgSrcUrl.pathname));
+          //create a new src path that points to our downloaded image
+          let newImgSrc = 'http://127.0.0.1:8080/archives/sites/' + urls[i] + imgSrcUrl.pathname;
+          //change src path of img tag to point to our server
+          console.log('changed img src to ' + newImgSrc);
+          $(element).attr('src', newImgSrc);
+        }
       });
       //save the page to disk
       fs.writeFileSync(exports.paths.archivedSites + '/' + urls[i] + '/index.html', $.html());
