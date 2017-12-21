@@ -11,9 +11,28 @@ exports.headers = {
 };
 
 exports.serveAssets = function(res, asset, callback) {
-  // Write some code here that helps serve up your static files!
-  // (Static files are things like html (yours or archived from others...),
-  // css, or anything that doesn't change often.)
+  //pull full directory for requested asset
+  asset.startsWith('/archives/') ? asset = __dirname + '/..' + asset : asset = __dirname + '/public' + asset;
+
+  //use fs stat to check if asset exists at path
+  fs.stat(asset, (err, stats) => {
+    //check if stat doesn't return error and if asset at path is a file
+    if (!err && stats.isFile()) {
+      //no errors and asset at path is a file
+      //create head for response
+      res.writeHead(200, exports.headers);
+      //read file at path
+      fs.readFile(asset, (err, data) => {
+        //respond back with file, add file to response body
+        res.end(data);
+      });
+    } else {
+      //error in finding file
+      //respond back with 404
+      res.writeHead(404, exports.headers);
+      res.end();
+    }
+  });
 };
 
 
