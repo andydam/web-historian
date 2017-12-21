@@ -1,6 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
+var request = require('request');
+var cheerio = require('cheerio');
 
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
@@ -67,5 +69,71 @@ exports.isUrlArchived = function(url, callback) {
   });
 };
 
+fs.mkdirParent = function(dirPath, mode, callback) {
+  //Call the standard fs.mkdir
+  fs.mkdir(dirPath, mode, function(error) {
+    //When it fail in this way, do the custom steps
+    if (error && error.errno === 34) {
+      //Create all the parents recursively
+      fs.mkdirParent(path.dirname(dirPath), mode, callback);
+      //And then the directory
+      fs.mkdirParent(dirPath, mode, callback);
+    }
+    //Manually run the callback since we used our own callback to do all these
+    callback && callback(error);
+  });
+};
+
+var mkdir = (path) => {
+  //check if path exists
+  if (!fs.existsSync(path)) {
+    //path does not exist
+    //check if immediate parent path exists
+    //ex: path = /a/b/c/d, check if /a/b/c exists
+    if (fs.existsSync(path.split('/').slice(0, -1).join('/'))) {
+      //if exists, create /a/b/c/d
+      fs.mkdirSync(path);
+    } else {
+      //otherwise recurse on /a/b/c
+      mkdir(path.split('/').slice(0, -1).join('/'));
+      //create /a/b/c/d after parents are made
+      fs.mkdirSync(path);
+    }
+  }
+};
+
 exports.downloadUrls = function(urls) {
+  //for loop to iterate through array of urls
+  for (let i = 0; i < urls.length; i++) {
+    //make directory for url
+    mkdir(exports.paths.archivedSites + '/' + urls[i]);
+    //download page at url
+    request('http://'+ urls[i], (error, response, body) => {
+      //load downloaded page in cheerio
+      $ = cheerio.load(body);
+      //iterate through page and find img tags
+      $('img').each((index, element) => {
+        //pull the src path of each img tag using .attr()
+        let imgSrc = $(element).attr('src');
+        //get a directory path to store image at
+        //slice off index 0 of split src, index 0 may be a empty string or domain name
+        let directory = imgSrc.split('/').slice(1, -1).join('/');
+        //make directory for image
+        mkdir(exports.paths.archivedSites + '/' + urls[i] + directory);
+        console.log('http://'+ urls[i] + imgSrc);
+        console.log(exports.paths.archivedSites + '/' + urls[i] + imgSrc);
+        //download image to directory
+        request('http://'+ urls[i] + imgSrc).pipe(fs.createWriteStream(exports.paths.archivedSites + '/' + urls[i] + imgSrc));
+        //create a new src path that points to our downloaded image
+        let newImgSrc = imgSrc.split('/');
+        newImgSrc[0] = 'http://127.0.0.1:8080/archives/sites/' + urls[i];
+        newImgSrc = newImgSrc.join('/');
+        //change src path of img tag to point to our server
+        console.log(newImgSrc);
+        $(element).attr('src', newImgSrc);
+      });
+      //save the page to disk
+      fs.writeFileSync(exports.paths.archivedSites + '/' + urls[i] + '/index.html', $.html());
+    });
+  }
 };

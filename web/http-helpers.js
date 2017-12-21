@@ -17,7 +17,7 @@ sendResponse = (res, code, data, headers = exports.headers) => {
 
 exports.serveAssets = function(res, asset, callback) {
   //default to index if no asset path passed
-  asset === '/' ? asset = '/index.html' : asset = asset;
+  asset.endsWith('/') ? asset += '/index.html' : asset = asset;
   //pull full directory for requested asset
   asset.startsWith('/archives/') ? asset = __dirname + '/..' + asset : asset = __dirname + '/public' + asset;
 

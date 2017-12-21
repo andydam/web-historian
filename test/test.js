@@ -125,7 +125,7 @@ describe('archive helpers', function() {
 
   describe('#isUrlArchived', function () {
     it('should check if a url is archived', function (done) {
-      fs.writeFileSync(archive.paths.archivedSites + '/www.example.com', 'blah blah');
+      //fs.writeFileSync(archive.paths.archivedSites + '/www.example.com', 'blah blah');
 
       var counter = 0;
       var total = 2;
