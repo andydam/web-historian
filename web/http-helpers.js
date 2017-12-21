@@ -10,7 +10,14 @@ exports.headers = {
   'Content-Type': 'text/html'
 };
 
+sendResponse = (res, code, data, headers = exports.headers) => {
+  res.writeHead(code, headers);
+  res.end(data);
+};
+
 exports.serveAssets = function(res, asset, callback) {
+  //default to index if no asset path passed
+  asset === '/' ? asset = '/index.html' : asset = asset;
   //pull full directory for requested asset
   asset.startsWith('/archives/') ? asset = __dirname + '/..' + asset : asset = __dirname + '/public' + asset;
 
@@ -19,18 +26,15 @@ exports.serveAssets = function(res, asset, callback) {
     //check if stat doesn't return error and if asset at path is a file
     if (!err && stats.isFile()) {
       //no errors and asset at path is a file
-      //create head for response
-      res.writeHead(200, exports.headers);
       //read file at path
       fs.readFile(asset, (err, data) => {
         //respond back with file, add file to response body
-        res.end(data);
+        sendResponse(res, 200, data);
       });
     } else {
       //error in finding file
       //respond back with 404
-      res.writeHead(404, exports.headers);
-      res.end();
+      sendResponse(res, 404);
     }
   });
 };
@@ -54,17 +58,14 @@ exports.checkAssets = function(request, response) {
         if (!inList && !archived) {
           //url is not in sites.txt, add to list
           archive.addUrlToList(requestUrl, err => {
-            response.writeHead(202, exports.headers);
-            response.end('url was accepted and waiting to be archived');
+            sendResponse(response, 202, JSON.stringify({'archived': false}));
           });
         } else if (inList && !archived) {
           //url is in sites.txt but not yet archived
-          response.writeHead(202, exports.headers);
-          response.end('url was already accepted and waiting to be archived');
+          sendResponse(response, 202, JSON.stringify({'archived': false}));
         } else if (inList && archived) {
           //url is in sites.txt and archived
-          response.writeHead(201, exports.headers);
-          response.end('url is archived');
+          sendResponse(response, 201, JSON.stringify({'archived': true}));
         }
       });
     });
