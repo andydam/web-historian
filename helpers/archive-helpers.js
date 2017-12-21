@@ -26,15 +26,45 @@ exports.initialize = function(pathsObj) {
 // modularize your code. Keep it clean!
 
 exports.readListOfUrls = function(callback) {
+  //read sites.txt
+  fs.readFile(exports.paths.list, (err, data) => {
+    //parse json stringified data in text
+    //return data to callback
+    callback(JSON.parse(data));
+  });
 };
 
 exports.isUrlInList = function(url, callback) {
+  //checks if the url is in sites.txt
+  exports.readListOfUrls(data => {
+    //return to callback if url is in sites.txt
+    data.hasOwnProperty(url) ? callback(true, data[url]) : callback(false, false);
+  });
 };
 
 exports.addUrlToList = function(url, callback) {
+  //adds url to sites.txt
+  //check if url is already in list
+  exports.isUrlInList(url, inList => {
+    if (!inList) {
+      //url is not in list
+      //read existing list from file
+      exports.readListOfUrls(data => {
+        //add url to existing list
+        data[url] = false;
+        //write list back to file
+        fs.writeFile(exports.paths.list, JSON.stringify(data), err => callback(err));
+      });
+    }
+  });
 };
 
 exports.isUrlArchived = function(url, callback) {
+  //check if url is archived
+  exports.isUrlInList(url, (inList, archived) => {
+    //use isUrlInList to see if url is archived, return result to callback
+    callback(archived);
+  });
 };
 
 exports.downloadUrls = function(urls) {
